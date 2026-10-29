@@ -1,149 +1,213 @@
-import { Link } from "react-router-dom";
+import React from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import {
+  addItem,
   removeItem,
   updateQuantity,
+  selectCartItems,
 } from "./CartSlice";
-import {
-  Minus,
-  Plus,
-  Trash2,
-  ShoppingBag,
-} from "lucide-react";
+import "./CartItem.css";
 
-export default function CartItem({ onCheckout }) {
+function Navbar({ totalItems }) {
+  return (
+    <nav className="navbar">
+      <Link to="/" className="navbar-brand">
+        Paradise Nursery
+      </Link>
+
+      <div className="navbar-links">
+        <Link to="/">Home</Link>
+        <Link to="/plants">Plants</Link>
+        <Link to="/cart" className="cart-link">
+          🛒 Cart
+          <span className="cart-quantity">{totalItems}</span>
+        </Link>
+      </div>
+    </nav>
+  );
+}
+
+export default function CartItem({ onContinueShopping }) {
   const dispatch = useDispatch();
-  const items = useSelector((state) => state.cart.items);
+  const navigate = useNavigate();
 
-  const totalQuantity = items.reduce(
+  const cartItems = useSelector(selectCartItems);
+
+  // Calculate the total quantity of items in the cart.
+  const totalItems = cartItems.reduce(
     (total, item) => total + item.quantity,
     0
   );
 
-  const grandTotal = items.reduce(
-    (total, item) => total + item.price * item.quantity,
+  // Calculate each item's subtotal and the complete cart total.
+  const totalAmount = cartItems.reduce(
+    (total, item) =>
+      total + (Number(item.price ?? item.cost) || 0) * item.quantity,
     0
   );
 
-  const handleQuantityChange = (id, quantity) => {
-    dispatch(updateQuantity({ id, quantity }));
+  // Increase the quantity of a plant.
+  const handleIncrement = (item) => {
+    dispatch(
+      updateQuantity({
+        name: item.name,
+        quantity: item.quantity + 1,
+      })
+    );
+  };
+
+  // Decrease the quantity or remove the plant when quantity reaches zero.
+  const handleDecrement = (item) => {
+    if (item.quantity <= 1) {
+      dispatch(removeItem(item.name));
+    } else {
+      dispatch(
+        updateQuantity({
+          name: item.name,
+          quantity: item.quantity - 1,
+        })
+      );
+    }
+  };
+
+  // Remove a plant from the cart.
+  const handleDelete = (item) => {
+    dispatch(removeItem(item.name));
+  };
+
+  // Return to the product listing page.
+  const handleContinueShopping = () => {
+    if (onContinueShopping) {
+      onContinueShopping();
+    } else {
+      navigate("/plants");
+    }
+  };
+
+  // Checkout placeholder for the assignment.
+  const handleCheckout = () => {
+    window.alert("Checkout Coming Soon!");
   };
 
   return (
-    <section className="cart-page page-section">
-      <div className="section-heading">
-        <span className="eyebrow">YOUR SELECTION</span>
-        <h1>Shopping <span>Cart</span></h1>
-        <p>Review your plants and manage your order.</p>
-      </div>
+    <div className="shopping-cart-page">
+      <Navbar totalItems={totalItems} />
 
-      {items.length === 0 ? (
-        <div className="empty-cart">
-          <span className="empty-icon">
-            <ShoppingBag size={36} />
-          </span>
-          <h2>Your shopping cart is empty.</h2>
-          <p>Discover our houseplants and find your favourite.</p>
-          <Link className="primary-btn" to="/plants">
-            Continue Shopping →
-          </Link>
-        </div>
-      ) : (
-        <div className="cart-layout">
-          <div className="cart-items">
-            {items.map((item) => (
-              <article className="cart-row" key={item.id}>
-                <img
-                  className="cart-thumb"
-                  src={item.image}
-                  alt={item.name}
-                  onError={(event) => {
-                    event.currentTarget.onerror = null;
-                    event.currentTarget.src =
-                      "https://images.unsplash.com/photo-1501004318641-b39e6451bec6?auto=format&fit=crop&w=600&q=80";
-                  }}
-                />
+      <div className="cart-page-content">
+        <h1>Shopping Cart</h1>
 
-                <div className="cart-product">
-                  <h3>{item.name}</h3>
-                  <p>Unit price: ₹{item.price}</p>
-                  <button
-                    className="remove-btn"
-                    onClick={() => dispatch(removeItem(item.id))}
-                  >
-                    <Trash2 size={14} />
-                    Remove
-                  </button>
-                </div>
+        {cartItems.length === 0 ? (
+          <div className="empty-cart">
+            <h2>Your cart is empty!</h2>
 
-                <div className="quantity-control">
-                  <button
-                    aria-label={`Decrease ${item.name} quantity`}
-                    disabled={item.quantity <= 1}
-                    onClick={() =>
-                      handleQuantityChange(
-                        item.id,
-                        item.quantity - 1
-                      )
-                    }
-                  >
-                    <Minus size={14} />
-                  </button>
-
-                  <span>{item.quantity}</span>
-
-                  <button
-                    aria-label={`Increase ${item.name} quantity`}
-                    onClick={() =>
-                      handleQuantityChange(
-                        item.id,
-                        item.quantity + 1
-                      )
-                    }
-                  >
-                    <Plus size={14} />
-                  </button>
-                </div>
-
-                <strong className="line-total">
-                  ₹{item.price * item.quantity}
-                </strong>
-              </article>
-            ))}
-          </div>
-
-          <aside className="order-summary">
-            <span className="eyebrow">ORDER SUMMARY</span>
-            <h2>Your Order</h2>
-
-            <div className="summary-line">
-              <span>Total plants ({totalQuantity})</span>
-              <strong>₹{grandTotal}</strong>
-            </div>
-
-            <div className="summary-line">
-              <span>Delivery</span>
-              <strong>Free</strong>
-            </div>
-
-            <div className="summary-total">
-              <span>Grand Total</span>
-              <strong>₹{grandTotal}</strong>
-            </div>
+            <p>
+              Looks like you haven't added any plants to your cart yet.
+            </p>
 
             <button
-              className="primary-btn checkout-btn"
-              onClick={onCheckout}
+              type="button"
+              className="continue-shopping-button"
+              onClick={handleContinueShopping}
             >
-              Proceed to Checkout →
+              Continue Shopping
             </button>
+          </div>
+        ) : (
+          <>
+            <div className="cart-container">
+              {cartItems.map((item) => {
+                const unitPrice =
+                  Number(item.price ?? item.cost) || 0;
 
-            <Link className="continue-link" to="/plants">
-              ← Continue Shopping
-            </Link>
-          </aside>
-        </div>
-      )}
-    </section>
+                const subtotal = unitPrice * item.quantity;
+
+                return (
+                  <div className="cart-item" key={item.name}>
+                    <img
+                      src={item.image}
+                      alt={item.name}
+                      className="cart-item-image"
+                    />
+
+                    <div className="cart-item-details">
+                      <h3>{item.name}</h3>
+
+                      <p className="unit-price">
+                        Unit Price: ${unitPrice.toFixed(2)}
+                      </p>
+
+                      <p className="item-subtotal">
+                        Subtotal: ${subtotal.toFixed(2)}
+                      </p>
+                    </div>
+
+                    <div className="quantity-controls">
+                      <button
+                        type="button"
+                        className="quantity-button"
+                        onClick={() => handleDecrement(item)}
+                        aria-label={`Decrease ${item.name} quantity`}
+                      >
+                        −
+                      </button>
+
+                      <span className="item-quantity">
+                        {item.quantity}
+                      </span>
+
+                      <button
+                        type="button"
+                        className="quantity-button"
+                        onClick={() => handleIncrement(item)}
+                        aria-label={`Increase ${item.name} quantity`}
+                      >
+                        +
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="delete-button"
+                      onClick={() => handleDelete(item)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="cart-summary">
+              <h2>
+                Total Items: {totalItems}
+              </h2>
+
+              <h2>
+                Total Amount: ${totalAmount.toFixed(2)}
+              </h2>
+
+              <div className="cart-actions">
+                <button
+                  type="button"
+                  className="continue-shopping-button"
+                  onClick={handleContinueShopping}
+                >
+                  Continue Shopping
+                </button>
+
+                <button
+                  type="button"
+                  className="checkout-button"
+                  onClick={handleCheckout}
+                >
+                  Checkout
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
   );
 }
